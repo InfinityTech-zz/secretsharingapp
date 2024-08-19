@@ -1,39 +1,44 @@
-import React, {useState} from 'react'
+import React, {useState} from 'react';
+import CopyButton from './CopyButton';
+import { useQuery } from 'react-query';
+import { fetchSecret } from './ApiUtility';
+import { Secret } from "./models/secret.model";
 
-interface CopyButtonProps {
-    text: string;
+interface ShowSecretProps {
+    objId: string;
 }
 
-export const CopyButton:React.FC<CopyButtonProps> = ({ text }) => { 
-    const [copied, setCopied] = useState(false); 
-    const handleCopy = async () => { 
-        try { 
-            await navigator.clipboard.writeText(text); 
-            setCopied(true); 
-            setTimeout(() => setCopied(false), 2000); // Reset copied state after 2 seconds 
-        } catch (err) { 
-            console.error('Failed to copy text: ', err); 
-        } }; 
-        return ( 
-         <div> 
-            <button onClick={handleCopy} className="px-4 py-2 bg-blue-500 text-white rounded-lg focus:outline-none hover:bg-blue-600" > 
-                {copied ? 'Copied!' : 'Copy to Clipboard'} 
-            </button> 
-        </div> 
-        ); 
-    }; 
+const ShowSecret: React.FC<ShowSecretProps> = ({ objId }) => {
 
+    const { data, error, isLoading, isError } = useQuery<Secret, Error>('secretData', () => fetchSecret(objId));
+    console.log(data);
 
-const ShowSecret: React.FC = () => {
+    // Handle loading state
+    if (isLoading) {
+        return <div>Loading...</div>;
+    }
+
+    // Handle error state
+    if (isError) {
+        return <div>
+                 The Secret is not available, try again
+                 <a className="font-medium text-blue-600 dark:text-blue-500 hover:underline" href={`${process.env.REACT_APP_FE_URL}`}>Go Back</a>
+               </div>;
+    }
   return (
     <div className="mx-20">
-        <h2 className="text-2xl font-bold mb-6 text-center">Show Secret</h2>
-    <textarea
-        value={`test`}
-        disabled
-        className="w-full p-3 border border-gray-300 rounded-lg mx-0">
-    </textarea>
-    <CopyButton text={'hghghghggh'} />
+    {data !== undefined && (
+        <>
+            <h2 className="text-2xl font-bold mb-6 text-center">Show Secret</h2>
+            <textarea
+                value={data.secret}
+                disabled
+                className="w-full p-3 border border-gray-300 rounded-lg mx-0">
+            </textarea>
+            <CopyButton text={data.secret} />
+        </>
+    )}
+   
     </div>
   )
 }

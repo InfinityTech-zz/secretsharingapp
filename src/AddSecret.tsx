@@ -1,5 +1,9 @@
 import React, { useState,useEffect } from 'react'
 import ShowUrl from './ShowUrl';
+import { useMutation } from 'react-query';
+import { createSecret, fetchSecret } from './ApiUtility';
+import ShowSecret from './ShowSecret';
+
 
 interface OptionGroup {
     label: string;
@@ -7,25 +11,57 @@ interface OptionGroup {
   }
 
 export default function AddSecret() {
-
+console.log('hellooo', process.env.REACT_APP_API_BASE_URL);
 const [secret, setSecret] = useState('');
 const [isSecretCreated, setSecretCreated] = useState(false);
+const [createdUrl, setCreatedUrl] = useState<string>('');
+const [showSpinner, setShowSpinner] = useState<boolean>(false);
+
+const queryString = window.location.search;
+
+// Parse the query string
+const queryParams = new URLSearchParams(queryString);
+
+// Get a specific query parameter
+const paramValue = queryParams.get('objId');
+console.log('paramValue', paramValue);
+
+
+const mutation = useMutation(createSecret, {
+    onSuccess: (data) => {
+        console.log('Item created successfully:', data);
+        setCreatedUrl(`${process.env.REACT_APP_FE_URL}?objId=${data.id}`);
+        setSecretCreated(true);
+        setShowSpinner(false);
+        // You can also invalidate queries here if you need to refresh any data
+    },
+    onError: (error) => {
+        console.error('Error creating item:', error);
+        setShowSpinner(false);
+    },
+});
 
 const handleSubmit = () => {
     // Handle form submission logic here
-    console.log('Secret submitted:', secret);
+    setShowSpinner(true);
     if(secret === ''){
         setSecretError(true);
-    }
-    if(isToggledSalt && inputValueSalt === ''){
+    } else if(isToggledSalt && inputValueSalt === ''){
         setSaltError(true);
-    }
-    if(isToggledEmail && inputValueEmail === ''){
+    } else if(isToggledEmail && inputValueEmail === ''){
         setEmailError(true);
+    } else {
+        mutation.mutate({
+            secret,
+            timeToExpire: selectedOption,
+            saltPhrase: inputValueSalt === '' ? 'secretKey' : inputValueSalt,
+            email: inputValueEmail === '' ? 'test@test.com' : inputValueEmail
+        });
     }
+
 }; 
 
-    const [selectedOption, setSelectedOption] = useState<string | null>('1 Hour');
+    const [selectedOption, setSelectedOption] = useState<string>('1 Hour');
     const [isOpen, setIsOpen] = useState<boolean>(false);
   
     // Error States
@@ -90,6 +126,12 @@ const handleSubmit = () => {
     setInputValueEmail(e.target.value);
     setEmailError(false);
   };
+
+if(paramValue !== null){
+    return (
+        <ShowSecret objId={paramValue} />
+    )
+}
 
  return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
@@ -238,33 +280,34 @@ const handleSubmit = () => {
     Submit
     </button>
     </div>
-
-    <div className="flex justify-center items-center pt-5">
-        <svg
-        className="animate-spin h-8 w-8 text-blue-500"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        >
-        <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-        ></circle>
-        <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-        ></path>
-        </svg>
-    </div>
-
+    {showSpinner && (
+        <div className="flex justify-center items-center pt-5">
+                <svg
+                    className="animate-spin h-8 w-8 text-blue-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    >
+                    <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        ></circle>
+                        <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        ></path>
+                </svg>
+        </div>
+    )}
+   
     </form>
       ) : (
-        <ShowUrl />
+        <ShowUrl createdUrl={createdUrl}  />
       )}
       
      
